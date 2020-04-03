@@ -498,7 +498,7 @@ var defaults = {
   }
 };
 
-var version = "1.0.1";
+var version = "1.0.2";
 
 var isObject = function isObject(value) {
   return value && _typeof(value) === 'object' && value.constructor === Object;
@@ -722,7 +722,7 @@ var Monoceros = function Monoceros(cluster) {
       });
     } else {
       var plugin = entries;
-      plugins.push([plugin, options]);
+      plugins.push([plugin, options || {}]);
     }
 
     _this.uninitialized_plugins = _this.uninitialized_plugins.concat(plugins);
@@ -745,7 +745,7 @@ var Monoceros = function Monoceros(cluster) {
       };
 
       if (!_this2.dom.viewport) {
-        throw new _this2.MonocerosCoreError("Missing ".concat(_this2.options.selectors.viewport, " element. Canceling initialization of viewport."));
+        throw new _this2.MonocerosCoreError("Missing ".concat(_this2.options.selectors.viewport, " element. Canceling Monoceros initialization."));
       }
 
       if (_this2.dom.viewport.nodeType) {
@@ -824,7 +824,10 @@ var Monoceros = function Monoceros(cluster) {
             Plugin = _ref2[0],
             options = _ref2[1];
 
-        return new Plugin(_this2.cluster, options);
+        var plugin = new Plugin(_this2.cluster, options);
+        plugin.init();
+        if (_this2.options.debug) _this2.log("-- initialized plugin \"".concat(plugin.name, "\""));
+        return plugin;
       });
     };
 

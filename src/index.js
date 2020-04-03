@@ -38,7 +38,7 @@ const Monoceros = function (cluster) {
       })
     } else {
       const plugin = entries
-      plugins.push([plugin, options])
+      plugins.push([plugin, options || {}])
     }
     this.uninitialized_plugins = this.uninitialized_plugins.concat(plugins)
 
@@ -148,9 +148,13 @@ const Monoceros = function (cluster) {
         if (this.options.debug) this.log('No plugins found.')
         return
       }
-      this.plugins = this.uninitialized_plugins.map(
-        ([Plugin, options]) => new Plugin(this.cluster, options)
-      )
+      this.plugins = this.uninitialized_plugins.map(([Plugin, options]) => {
+        const plugin = new Plugin(this.cluster, options)
+        plugin.init()
+        if (this.options.debug)
+          this.log(`-- initialized plugin "${plugin.name}"`)
+        return plugin
+      })
     }
 
     initViewport()
