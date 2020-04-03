@@ -1,5 +1,5 @@
 {
   "global": "Monoceros",
   "filename": "monoceros-core",
-  "dependencies": []
+  "dependencies": ["Cluster"]
 }
