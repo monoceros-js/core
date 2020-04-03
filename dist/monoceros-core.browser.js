@@ -501,7 +501,7 @@ var Monoceros = (function () {
     }
   };
 
-  var version = "1.0.2";
+  var version = "1.0.3";
 
   var isObject = function isObject(value) {
     return value && _typeof(value) === 'object' && value.constructor === Object;
@@ -785,7 +785,7 @@ var Monoceros = (function () {
         var elements = _toConsumableArray(document.querySelectorAll(_this2.options.selectors.item));
 
         if (elements.length === 0) {
-          if (options.debug) _this2.log("No ".concat(_this2.options.selectors.item, " elements found. If you are expecting them to be found, check your html elements for naming issues."));
+          if (_this2.options.debug) _this2.log("No ".concat(_this2.options.selectors.item, " elements found. If you are expecting them to be found, check your html elements for naming issues."));
           return;
         }
 

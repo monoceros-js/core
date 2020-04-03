@@ -110,7 +110,7 @@ const Monoceros = function (cluster) {
         ...document.querySelectorAll(this.options.selectors.item),
       ]
       if (elements.length === 0) {
-        if (options.debug)
+        if (this.options.debug)
           this.log(
             `No ${this.options.selectors.item} elements found. If you are expecting them to be found, check your html elements for naming issues.`
           )
