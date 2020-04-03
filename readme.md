@@ -1,4 +1,4 @@
-# @Monoceros/core
+# @monoceros/core
 
 > Core for Monoceros. Intializes core elements, sets up intersection observers and exposes core functions & classes
 
