@@ -501,7 +501,7 @@ var Monoceros = (function () {
     }
   };
 
-  var version = "1.0.0";
+  var version = "1.0.1";
 
   var isObject = function isObject(value) {
     return value && _typeof(value) === 'object' && value.constructor === Object;
@@ -748,7 +748,7 @@ var Monoceros = (function () {
         };
 
         if (!_this2.dom.viewport) {
-          throw new _this2.MonocerosCoreError("Missing ".concat(options.selectors.viewport, " element. Canceling initialization of viewport."));
+          throw new _this2.MonocerosCoreError("Missing ".concat(_this2.options.selectors.viewport, " element. Canceling initialization of viewport."));
         }
 
         if (_this2.dom.viewport.nodeType) {

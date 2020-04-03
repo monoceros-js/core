@@ -61,7 +61,7 @@ const Monoceros = function (cluster) {
 
       if (!this.dom.viewport) {
         throw new this.MonocerosCoreError(
-          `Missing ${options.selectors.viewport} element. Canceling initialization of viewport.`
+          `Missing ${this.options.selectors.viewport} element. Canceling Monoceros initialization.`
         )
       }
 
