@@ -1,6 +1,6 @@
 {
   "name": "@monoceros/core",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Monoceros core",
   "main": "dist/monoceros-core.js",
   "scripts": {
