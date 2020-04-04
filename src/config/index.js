@@ -4,7 +4,8 @@ export default {
   debug: false,
   base: {
     viewport: 'viewport',
-    container: 'container',
+    section: 'section',
     item: 'item',
+    rogue: 'rogue',
   },
 }
