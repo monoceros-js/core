@@ -134,7 +134,7 @@ const Monoceros = function (cluster) {
 
       sections.forEach(section => {
         const children = childInstances.filter(
-          instance => instance.parent.element === section
+          instance => instance.parent.el === section
         )
 
         sectionInstances.push(
