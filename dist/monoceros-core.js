@@ -493,12 +493,13 @@ var defaults = {
   debug: false,
   base: {
     viewport: 'viewport',
-    container: 'container',
-    item: 'item'
+    section: 'section',
+    item: 'item',
+    rogue: 'rogue'
   }
 };
 
-var version = "1.0.3";
+var version = "1.0.5";
 
 var isObject = function isObject(value) {
   return value && _typeof(value) === 'object' && value.constructor === Object;
@@ -533,7 +534,7 @@ var createSelector = function createSelector(_base, _selector) {
   return "[data-".concat(_base).concat(_selector, "]");
 };
 var createClassName = function createClassName(_prefix, _className) {
-  return "".concat(_prefix, "in-").concat(_className);
+  return "".concat(_prefix).concat(_className);
 };
 var createOptions = function createOptions() {
   var options = merge.apply(void 0, arguments);
@@ -553,38 +554,22 @@ var createOptions = function createOptions() {
           value = _Object$entries$_i[1];
 
       options.selectors[key] = createSelector(options.selectorPrefix, value);
-      options.classNames['in_' + key] = createClassName(options.classNamePrefix, value);
+      options.classNames[key] = createClassName(options.classNamePrefix, value);
     }
   }
 
   return options;
 };
 
-var createObserver = function createObserver(_ref) {
+var createObserver = function createObserver(_ref, callback) {
   var root = _ref.root,
-      className = _ref.className,
       threshold = _ref.threshold,
-      rootMargin = _ref.rootMargin,
-      cb = _ref.cb;
+      rootMargin = _ref.rootMargin;
   threshold = threshold || 0;
   rootMargin = rootMargin || '0px';
   return new IntersectionObserver(function (entries) {
-    entries.forEach(function (entry, index) {
-      var isIntersecting = entry.isIntersecting,
-          target = entry.target;
-
-      if (isIntersecting) {
-        if (!target.classList.contains(className)) {
-          target.classList.add(className);
-        }
-      } else {
-        if (target.classList.contains(className)) {
-          target.classList.remove(className);
-        }
-      }
-
-      if (cb) cb(entry, index);
-    });
+    if (!callback) return;
+    callback(entries);
   }, {
     root: root,
     threshold: threshold,
@@ -592,19 +577,30 @@ var createObserver = function createObserver(_ref) {
   });
 };
 
-var createMonocerosInstance = function createMonocerosInstance(el) {
+var createMonocerosInstance = function createMonocerosInstance(type, el, parentElement, children) {
   return {
+    type: type,
     el: el,
-    inView: false,
-    x: {
-      start: 0,
-      current: 0,
-      end: 0
+    isIntersecting: false,
+    isIntersectingParent: null,
+    index: null,
+    parent: {
+      element: parentElement,
+      index: null
     },
-    y: {
-      start: 0,
-      current: 0,
-      end: 0
+    children: children || [],
+    observers: {},
+    coordinates: {
+      x: {
+        start: 0,
+        current: 0,
+        end: 0
+      },
+      y: {
+        start: 0,
+        current: 0,
+        end: 0
+      }
     }
   };
 };
@@ -635,6 +631,116 @@ var log = function log() {
 var logError = function logError(error) {
   console.error = error;
 };
+
+var itemObserver = function itemObserver(options, instances, items) {
+  var handleObservation = function handleObservation(item) {
+    var index = parseInt(item.target.dataset.monocerosIndex);
+    var itemInstance = instances[index];
+    if (!itemInstance) return;
+    var isIntersecting = item.isIntersecting && !itemInstance.isIntersecting;
+    var isNotIntersecting = !item.isIntersecting && itemInstance.isIntersecting;
+    var intersectionClass = 'in-' + options.base.viewport;
+
+    if (isIntersecting) {
+      itemInstance.isIntersecting = true;
+      item.target.classList.add(intersectionClass);
+    } else if (isNotIntersecting) {
+      itemInstance.isIntersecting = false;
+      item.target.classList.remove(intersectionClass);
+    }
+  };
+
+  items.forEach(handleObservation);
+};
+
+var sectionObserver = function sectionObserver(options, instances, sections) {
+  var handleObservation = function handleObservation(section) {
+    var index = parseInt(section.target.dataset.monocerosIndex);
+    var sectionInstance = instances[index];
+    if (!sectionInstance) return;
+    var isIntersecting = section.isIntersecting && !sectionInstance.isIntersecting;
+    var isNotIntersecting = !section.isIntersecting && sectionInstance.isIntersecting;
+    var intersectionClass = 'in-' + options.base.viewport;
+
+    if (isIntersecting) {
+      sectionInstance.children.forEach(function (childInstance) {
+        sectionInstance.observers.viewport.observe(childInstance.el);
+        sectionInstance.observers.section.observe(childInstance.el);
+      });
+      sectionInstance.isIntersecting = true;
+      section.target.classList.add(intersectionClass);
+    } else if (isNotIntersecting) {
+      sectionInstance.observers.viewport.disconnect();
+      sectionInstance.observers.section.disconnect();
+      sectionInstance.children.forEach(function (childInstance) {
+        if (childInstance.el.classList.contains(intersectionClass)) {
+          childInstance.el.classList.remove(intersectionClass);
+        }
+      });
+      sectionInstance.isIntersecting = false;
+      section.target.classList.remove(intersectionClass);
+    }
+  };
+
+  sections.forEach(handleObservation);
+};
+
+var childObserver = function childObserver(options, instances, children) {
+  var handleObservation = function handleObservation(child) {
+    var index = parseInt(child.target.dataset.monocerosIndex);
+    var parentIndex = parseInt(child.target.dataset.monocerosParent);
+    var childInstance = instances[parentIndex].children[index];
+    var isIntersecting = child.isIntersecting && childInstance.isIntersectingParent;
+    var isNotIntersecting = !child.isIntersecting || !childInstance.isIntersectingParent;
+    var intersectionClass = 'in-' + options.base.viewport;
+    var hasIntersectionClass = child.target.classList.contains(intersectionClass);
+
+    if (isIntersecting && !childInstance.isIntersecting) {
+      childInstance.isIntersecting = true;
+      child.target.classList.add(intersectionClass);
+    }
+
+    if (isNotIntersecting && childInstance.isIntersecting) {
+      childInstance.isIntersecting = false;
+      child.target.classList.remove(intersectionClass);
+    }
+
+    if (childInstance.isIntersecting && !hasIntersectionClass) {
+      child.target.classList.add(intersectionClass);
+    }
+
+    if (!childInstance.isIntersecting && hasIntersectionClass) {
+      child.target.classList.remove(intersectionClass);
+    }
+  };
+
+  children.forEach(handleObservation);
+};
+var childParentObserver = function childParentObserver(instances, children) {
+  var handleObservation = function handleObservation(child) {
+    var index = parseInt(child.target.dataset.monocerosIndex);
+    var parentIndex = parseInt(child.target.dataset.monocerosParent);
+    var parentInstance = instances[parentIndex];
+    var childInstance = parentInstance.children[index];
+    var intersectingParent = child.isIntersecting && !childInstance.isIntersectingParent;
+    var notIntersectingParent = !child.isIntersecting && childInstance.isIntersectingParent;
+
+    if (intersectingParent) {
+      childInstance.isIntersectingParent = true;
+    }
+
+    if (notIntersectingParent) {
+      childInstance.isIntersectingParent = false;
+    }
+  };
+
+  children.forEach(handleObservation);
+};
+
+var itemObserverCallback = itemObserver;
+var sectionObserverCallback = sectionObserver;
+var childObserverCallback = childObserver;
+var childParentObserverCallback = childParentObserver;
 
 var MonocerosError = /*#__PURE__*/function (_Error) {
   _inherits(MonocerosError, _Error);
@@ -669,16 +775,28 @@ var MonocerosCoreError = /*#__PURE__*/function (_MonocerosError) {
 }(MonocerosError);
 
 var cluster = new Cluster();
-cluster.register('defaultOptions', defaults);
-cluster.register('version', version);
-cluster.register('createOptions', createOptions);
-cluster.register('createObserver', createObserver);
-cluster.register('createMonocerosInstance', createMonocerosInstance);
-cluster.register('log', log);
-cluster.register('logError', logError);
-cluster.register('isArray', isArray);
-cluster.register('MonocerosError', MonocerosError);
-cluster.register('MonocerosCoreError', MonocerosCoreError);
+cluster.register('options.default', defaults);
+cluster.register('options.version', version);
+cluster.register('options.create', createOptions);
+cluster.register('monoceros.createInstance', createMonocerosInstance);
+cluster.register('utils.log', log);
+cluster.register('utils.logError', logError);
+cluster.register('utils.isArray', isArray);
+cluster.register('errors.MonocerosError', MonocerosError);
+cluster.register('errors.MonocerosCoreError', MonocerosCoreError);
+cluster.register('observer.create', createObserver);
+cluster.register('observer.itemObserver', itemObserverCallback, {
+  dependencies: ['options', 'instances']
+});
+cluster.register('observer.sectionObserver', sectionObserverCallback, {
+  dependencies: ['options', 'instances']
+});
+cluster.register('observer.childObserver', childObserverCallback, {
+  dependencies: ['options', 'instances']
+});
+cluster.register('observer.childParentObserver', childParentObserverCallback, {
+  dependencies: ['instances']
+});
 
 var Monoceros = function Monoceros(cluster) {
   var _this = this;
@@ -688,27 +806,44 @@ var Monoceros = function Monoceros(cluster) {
   this.plugins = [];
   this.uninitialized_plugins = [];
   this.instances = [];
-  this.version = this.cluster.resolve('version') || null;
-  this.log = this.cluster.resolve('log');
-  this.defaults = this.cluster.resolve('defaultOptions');
-  this.options = this.cluster.resolve('createOptions', this.defaults)();
-  this.MonocerosCoreError = this.cluster.resolve('MonocerosCoreError');
+  this.dom = {
+    html: document.documentElement,
+    body: document.body,
+    viewport: null
+  };
+  this.version = this.cluster.resolve('options.version') || null;
+  this.log = this.cluster.resolve('utils.log');
+  this.options = this.cluster.resolve('options.create')(this.cluster.resolve('options.default'));
+  this.MonocerosCoreError = this.cluster.resolve('errors.MonocerosCoreError');
+  this.__set_called = false;
+  this.__use_called = false;
+  this.__init_called = false;
 
   this.set = function (options) {
+    if (_this.__use_called || _this.__init_called) {
+      throw new _this.MonocerosCoreError('.set() should be called before calling .use() and/or .init()');
+    }
+
     if (options.debug) _this.log('SETTING OPTIONS');
-    _this.options = _this.cluster.resolve('createOptions')(_this.options, options);
+    _this.__set_called = true;
+    _this.options = _this.cluster.resolve('options.create')(_this.options, options);
     return _this;
   };
 
   this.use = function (entries, options) {
+    if (_this.__init_called) {
+      throw new _this.MonocerosCoreError('.use() should be called before calling .init()');
+    }
+
     if (_this.options.debug) _this.log('USING PLUGIN');
+    _this.__use_called = true;
 
     if (!entries) {
       if (_this.options.debug) _this.log('No plugins found to be initialized. Make sure to pass a plugin function to .use()');
       return;
     }
 
-    var isArray = _this.cluster.resolve('isArray');
+    var isArray = _this.cluster.resolve('utils.isArray');
 
     var plugins = [];
 
@@ -732,9 +867,8 @@ var Monoceros = function Monoceros(cluster) {
   this.init = function () {
     var _this2 = this;
 
+    this.__init_called = true;
     if (this.options.debug) this.log('STARTING INIT');
-    this.cluster.register('options', this.options);
-    var createObserver = this.cluster.resolve('createObserver');
 
     var initViewport = function initViewport() {
       if (_this2.options.debug) _this2.log('-- init viewport');
@@ -751,63 +885,123 @@ var Monoceros = function Monoceros(cluster) {
       if (_this2.dom.viewport.nodeType) {
         _this2.dom.viewport.style = "\n          position: fixed;\n          height: 100vh;\n          width: 100vw;\n          overflow-x: hidden;\n          overflow-y: scroll;\n        ";
       }
-
-      _this2.cluster.register('dom', _this2.dom);
     };
 
-    var initContainers = function initContainers() {
-      if (_this2.options.debug) _this2.log('-- init containers');
-      var containerObserver = createObserver({
-        root: _this2.dom.viewport,
-        className: _this2.options.classNames.in_viewport
-      });
-      var containers = document.querySelectorAll(_this2.options.selectors.container);
+    this.initItemInstances = function () {
+      var createInstance = _this2.cluster.resolve('monoceros.createInstance');
 
-      if (containers.length === 0) {
-        if (_this2.options.debug) _this2.log("No ".concat(_this2.options.selectors.container, " elements found. If you are expecting containers, check your html for naming issues."));
-        return;
-      }
+      var items = _toConsumableArray(document.querySelectorAll(_this2.options.selectors.item));
 
-      containers.forEach(function (container) {
-        container.style = "\n          overflow: hidden;\n          position: relative;\n        ";
-        containerObserver.observe(container);
+      var rogueInstances = [];
+      var childInstances = [];
+      items.forEach(function (el) {
+        var parent = el.closest(_this2.options.selectors.section);
+
+        if (parent) {
+          childInstances.push(createInstance(_this2.options.base.item, el, parent));
+          return;
+        }
+
+        rogueInstances.push(createInstance(_this2.options.base.rogue, el, _this2.dom.viewport));
       });
+      rogueInstances.forEach(function (instance) {
+        instance.el.classList.add(_this2.options.classNames.rogue);
+      });
+      return [childInstances, rogueInstances];
+    };
+
+    this.initSectionInstances = function (childInstances) {
+      var createInstance = _this2.cluster.resolve('monoceros.createInstance');
+
+      var sections = _toConsumableArray(document.querySelectorAll(_this2.options.selectors.section));
+
+      var sectionInstances = [];
+      sections.forEach(function (section) {
+        var children = childInstances.filter(function (instance) {
+          return instance.parent.element === section;
+        });
+        sectionInstances.push(createInstance(_this2.options.base.section, section, _this2.dom.viewport, children));
+        section.style = "\n          overflow: hidden;\n          position: relative;\n        ";
+      });
+      return sectionInstances;
     };
 
     var initInstances = function initInstances() {
       if (_this2.options.debug) _this2.log('-- init instances');
+      if (_this2.options.debug) _this2.log('---- init item instances');
 
-      var createInstance = _this2.cluster.resolve('createMonocerosInstance');
+      var _this2$initItemInstan = _this2.initItemInstances(),
+          _this2$initItemInstan2 = _slicedToArray(_this2$initItemInstan, 2),
+          childInstances = _this2$initItemInstan2[0],
+          rogueInstances = _this2$initItemInstan2[1];
 
-      var elements = _toConsumableArray(document.querySelectorAll(_this2.options.selectors.item));
+      if (_this2.options.debug) _this2.log('---- init section instances');
 
-      if (elements.length === 0) {
-        if (_this2.options.debug) _this2.log("No ".concat(_this2.options.selectors.item, " elements found. If you are expecting them to be found, check your html elements for naming issues."));
-        return;
-      }
+      var sectionInstances = _this2.initSectionInstances(childInstances);
 
-      elements.forEach(function (el) {
-        _this2.instances.push(createInstance(el));
-      });
-      var itemObserver = createObserver({
-        root: _this2.dom.viewport,
-        className: _this2.options.classNames.in_viewport
-      });
+      _this2.instances = [].concat(_toConsumableArray(sectionInstances), _toConsumableArray(rogueInstances));
 
-      _this2.instances.forEach(function (instance) {
-        var el = instance.el;
-        itemObserver.observe(el);
-        var container = el.closest(_this2.options.selectors.container);
+      _this2.instances.forEach(function (instance, index) {
+        _this2.instances[index].index = index;
+        instance.el.dataset.monocerosIndex = index;
 
-        if (container) {
-          var itemContainerObserver = createObserver({
-            root: container,
-            className: _this2.options.classNames.in_container
+        if (instance.type === _this2.options.base.section) {
+          instance.children.forEach(function (child, childIndex) {
+            _this2.instances[index].children[childIndex].parent.index = index;
+            _this2.instances[index].children[childIndex].index = childIndex;
+            child.el.dataset.monocerosParent = index;
+            child.el.dataset.monocerosIndex = childIndex;
           });
-          itemContainerObserver.observe(el);
-        } else {
-          el.classList.add(_this2.options.classNamePrefix + 'no-container-parent');
         }
+      });
+    };
+
+    var initCluster = function initCluster() {
+      if (_this2.options.debug) _this2.log('-- init cluster registrations');
+
+      _this2.cluster.register('instances', _this2.instances);
+
+      _this2.cluster.register('options', _this2.options);
+
+      _this2.cluster.register('dom', _this2.dom);
+    };
+
+    var initObservers = function initObservers() {
+      var create = _this2.cluster.resolve('observer.create');
+
+      var itemObserverCallback = _this2.cluster.resolve('observer.itemObserver');
+
+      var sectionObserverCallback = _this2.cluster.resolve('observer.sectionObserver');
+
+      var childObserverCallback = _this2.cluster.resolve('observer.childObserver');
+
+      var childParentObserverCallback = _this2.cluster.resolve('observer.childParentObserver');
+
+      var itemObserver = create({
+        root: _this2.dom.viewport
+      }, itemObserverCallback);
+      var sectionObserver = create({
+        root: _this2.dom.viewport
+      }, sectionObserverCallback);
+      var childObserver = create({
+        root: _this2.dom.viewport
+      }, childObserverCallback);
+
+      _this2.instances.filter(function (i) {
+        return i.type === _this2.options.base.rogue;
+      }).forEach(function (rogueInstance) {
+        return itemObserver.observe(rogueInstance.el);
+      });
+
+      _this2.instances.filter(function (i) {
+        return i.type === _this2.options.base.section;
+      }).forEach(function (sectionInstance) {
+        var childParentObserver = create({
+          root: sectionInstance.el
+        }, childParentObserverCallback);
+        sectionInstance.observers.viewport = childObserver;
+        sectionInstance.observers.section = childParentObserver;
+        sectionObserver.observe(sectionInstance.el);
       });
     };
 
@@ -832,8 +1026,9 @@ var Monoceros = function Monoceros(cluster) {
     };
 
     initViewport();
-    initContainers();
     initInstances();
+    initCluster();
+    initObservers();
     initPlugins();
     if (this.options.debug) this.log('INIT FINISHED');
     return {
@@ -841,7 +1036,7 @@ var Monoceros = function Monoceros(cluster) {
       version: this.version,
       plugins: this.plugins,
       options: this.options,
-      cluster: this.cluster
+      instances: this.instances
     };
   };
 };
