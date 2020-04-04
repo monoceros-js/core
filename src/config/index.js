@@ -1,5 +1,5 @@
 export default {
-  classNamePrefix: 'u_',
+  classNamePrefix: 'm-',
   selectorPrefix: 'monoceros-',
   debug: false,
   base: {
