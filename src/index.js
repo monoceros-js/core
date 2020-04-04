@@ -203,17 +203,26 @@ const Monoceros = function (cluster) {
       )
 
       const itemObserver = create(
-        { root: this.dom.viewport },
+        {
+          root: this.dom.viewport,
+          rootMargin: this.options.rootMargin.parent,
+        },
         itemObserverCallback
       )
 
       const sectionObserver = create(
-        { root: this.dom.viewport },
+        {
+          root: this.dom.viewport,
+          rootMargin: this.options.rootMargin.parent,
+        },
         sectionObserverCallback
       )
 
       const childObserver = create(
-        { root: this.dom.viewport },
+        {
+          root: this.dom.viewport,
+          rootMargin: this.options.rootMargin.child,
+        },
         childObserverCallback
       )
 
@@ -225,7 +234,9 @@ const Monoceros = function (cluster) {
         .filter(i => i.type === this.options.base.section)
         .forEach(sectionInstance => {
           const childParentObserver = create(
-            { root: sectionInstance.el },
+            {
+              root: sectionInstance.el,
+            },
             childParentObserverCallback
           )
           sectionInstance.observers.viewport = childObserver

@@ -8,4 +8,8 @@ export default {
     item: 'item',
     rogue: 'rogue',
   },
+  rootMargin: {
+    parent: '0px',
+    child: '0px',
+  },
 }
