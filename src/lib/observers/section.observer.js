@@ -1,6 +1,7 @@
-export const sectionObserver = (options, instances, sections) => {
+export const sectionObserver = (options, instances, cc, sections) => {
   const handleObservation = section => {
-    const index = parseInt(section.target.dataset.monocerosIndex)
+    const prefix = options.selectorPrefix
+    const index = parseInt(section.target.dataset[cc(prefix + 'index')])
     const sectionInstance = instances[index]
 
     if (!sectionInstance) return

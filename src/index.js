@@ -166,16 +166,19 @@ const Monoceros = function (cluster) {
 
       this.instances = [...sectionInstances, ...rogueInstances]
 
+      const cc = this.cluster.resolve('utils.camelCasify')
+      const prefix = this.options.selectorPrefix
+
       this.instances.forEach((instance, index) => {
         this.instances[index].index = index
-        instance.el.dataset.monocerosIndex = index
+        instance.el.dataset[cc(prefix + 'index')] = index
 
         if (instance.type === this.options.base.section) {
           instance.children.forEach((child, childIndex) => {
             this.instances[index].children[childIndex].parent.index = index
             this.instances[index].children[childIndex].index = childIndex
-            child.el.dataset.monocerosParent = index
-            child.el.dataset.monocerosIndex = childIndex
+            child.el.dataset[cc(prefix + 'parent')] = index
+            child.el.dataset[cc(prefix + 'index')] = childIndex
           })
         }
       })

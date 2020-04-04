@@ -1,14 +1,14 @@
-const prependByZero = val => {
-  if (val < 10) return '0' + val
+const prependByZero = (val, threshold) => {
+  if (val < threshold) return '0' + val
   return val
 }
 
 const getCurrentTime = () => {
   const date = new Date()
-  const hours = prependByZero(date.getHours())
-  const minutes = prependByZero(date.getMinutes())
-  const seconds = prependByZero(date.getSeconds())
-  const millis = date.getMilliseconds()
+  const hours = prependByZero(date.getHours(), 10)
+  const minutes = prependByZero(date.getMinutes(), 10)
+  const seconds = prependByZero(date.getSeconds(), 10)
+  const millis = prependByZero(date.getMilliseconds(), 100)
   return `${hours}:${minutes}:${seconds}.${millis}`
 }
 

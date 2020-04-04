@@ -1,6 +1,7 @@
-export const itemObserver = (options, instances, items) => {
+export const itemObserver = (options, instances, cc, items) => {
   const handleObservation = item => {
-    const index = parseInt(item.target.dataset.monocerosIndex)
+    const prefix = options.selectorPrefix
+    const index = parseInt(item.target.dataset[cc(prefix + 'index')])
     const itemInstance = instances[index]
 
     if (!itemInstance) return

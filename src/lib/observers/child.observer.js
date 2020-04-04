@@ -1,7 +1,8 @@
-export const childObserver = (options, instances, children) => {
+export const childObserver = (options, instances, cc, children) => {
   const handleObservation = child => {
-    const index = parseInt(child.target.dataset.monocerosIndex)
-    const parentIndex = parseInt(child.target.dataset.monocerosParent)
+    const prefix = options.selectorPrefix
+    const index = parseInt(child.target.dataset[cc(prefix + 'index')])
+    const parentIndex = parseInt(child.target.dataset[cc(prefix + 'parent')])
 
     const childInstance = instances[parentIndex].children[index]
 
@@ -36,10 +37,11 @@ export const childObserver = (options, instances, children) => {
   children.forEach(handleObservation)
 }
 
-export const childParentObserver = (instances, children) => {
+export const childParentObserver = (options, instances, cc, children) => {
   const handleObservation = child => {
-    const index = parseInt(child.target.dataset.monocerosIndex)
-    const parentIndex = parseInt(child.target.dataset.monocerosParent)
+    const prefix = options.selectorPrefix
+    const index = parseInt(child.target.dataset[cc(prefix + 'index')])
+    const parentIndex = parseInt(child.target.dataset[cc(prefix + 'parent')])
 
     const parentInstance = instances[parentIndex]
     const childInstance = parentInstance.children[index]
