@@ -6,20 +6,41 @@ const Monoceros = function (cluster) {
   this.plugins = []
   this.uninitialized_plugins = []
   this.instances = []
-  this.version = this.cluster.resolve('version') || null
-  this.log = this.cluster.resolve('log')
-  this.defaults = this.cluster.resolve('defaultOptions')
-  this.options = this.cluster.resolve('createOptions', this.defaults)()
-  this.MonocerosCoreError = this.cluster.resolve('MonocerosCoreError')
+  this.dom = {
+    html: document.documentElement,
+    body: document.body,
+    viewport: null,
+  }
+  this.version = this.cluster.resolve('options.version') || null
+  this.log = this.cluster.resolve('utils.log')
+  this.options = this.cluster.resolve('options.create')(
+    this.cluster.resolve('options.default')
+  )
+  this.MonocerosCoreError = this.cluster.resolve('errors.MonocerosCoreError')
+  this.__set_called = false
+  this.__use_called = false
+  this.__init_called = false
 
   this.set = options => {
+    if (this.__use_called || this.__init_called) {
+      throw new this.MonocerosCoreError(
+        '.set() should be called before calling .use() and/or .init()'
+      )
+    }
     if (options.debug) this.log('SETTING OPTIONS')
-    this.options = this.cluster.resolve('createOptions')(this.options, options)
+    this.__set_called = true
+    this.options = this.cluster.resolve('options.create')(this.options, options)
     return this
   }
 
   this.use = (entries, options) => {
+    if (this.__init_called) {
+      throw new this.MonocerosCoreError(
+        '.use() should be called before calling .init()'
+      )
+    }
     if (this.options.debug) this.log('USING PLUGIN')
+    this.__use_called = true
     if (!entries) {
       if (this.options.debug)
         this.log(
@@ -27,7 +48,7 @@ const Monoceros = function (cluster) {
         )
       return
     }
-    const isArray = this.cluster.resolve('isArray')
+    const isArray = this.cluster.resolve('utils.isArray')
     const plugins = []
     if (isArray(entries)) {
       entries.forEach(entry => {
@@ -46,10 +67,8 @@ const Monoceros = function (cluster) {
   }
 
   this.init = function () {
+    this.__init_called = true
     if (this.options.debug) this.log('STARTING INIT')
-    this.cluster.register('options', this.options)
-
-    const createObserver = this.cluster.resolve('createObserver')
 
     const initViewport = () => {
       if (this.options.debug) this.log('-- init viewport')
@@ -74,72 +93,145 @@ const Monoceros = function (cluster) {
           overflow-y: scroll;
         `
       }
-
-      this.cluster.register('dom', this.dom)
     }
 
-    const initContainers = () => {
-      if (this.options.debug) this.log('-- init containers')
-      const containerObserver = createObserver({
-        root: this.dom.viewport,
-        className: this.options.classNames.in_viewport,
-      })
-      const containers = document.querySelectorAll(
-        this.options.selectors.container
-      )
-      if (containers.length === 0) {
-        if (this.options.debug)
-          this.log(
-            `No ${this.options.selectors.container} elements found. If you are expecting containers, check your html for naming issues.`
+    this.initItemInstances = () => {
+      const createInstance = this.cluster.resolve('monoceros.createInstance')
+
+      const items = [...document.querySelectorAll(this.options.selectors.item)]
+
+      const rogueInstances = []
+      const childInstances = []
+
+      items.forEach(el => {
+        const parent = el.closest(this.options.selectors.section)
+        if (parent) {
+          childInstances.push(
+            createInstance(this.options.base.item, el, parent)
           )
-        return
-      }
-      containers.forEach(container => {
-        container.style = `
+          return
+        }
+        rogueInstances.push(
+          createInstance(this.options.base.rogue, el, this.dom.viewport)
+        )
+      })
+
+      rogueInstances.forEach(instance => {
+        instance.el.classList.add(this.options.classNames.rogue)
+      })
+
+      return [childInstances, rogueInstances]
+    }
+
+    this.initSectionInstances = childInstances => {
+      const createInstance = this.cluster.resolve('monoceros.createInstance')
+
+      const sections = [
+        ...document.querySelectorAll(this.options.selectors.section),
+      ]
+
+      const sectionInstances = []
+
+      sections.forEach(section => {
+        const children = childInstances.filter(
+          instance => instance.parent.element === section
+        )
+
+        sectionInstances.push(
+          createInstance(
+            this.options.base.section,
+            section,
+            this.dom.viewport,
+            children
+          )
+        )
+
+        section.style = `
           overflow: hidden;
           position: relative;
         `
-        containerObserver.observe(container)
       })
+
+      return sectionInstances
     }
 
     const initInstances = () => {
       if (this.options.debug) this.log('-- init instances')
-      const createInstance = this.cluster.resolve('createMonocerosInstance')
-      const elements = [
-        ...document.querySelectorAll(this.options.selectors.item),
-      ]
-      if (elements.length === 0) {
-        if (this.options.debug)
-          this.log(
-            `No ${this.options.selectors.item} elements found. If you are expecting them to be found, check your html elements for naming issues.`
-          )
-        return
-      }
 
-      elements.forEach(el => {
-        this.instances.push(createInstance(el))
-      })
+      if (this.options.debug) this.log('---- init item instances')
+      const [childInstances, rogueInstances] = this.initItemInstances()
 
-      const itemObserver = createObserver({
-        root: this.dom.viewport,
-        className: this.options.classNames.in_viewport,
-      })
+      if (this.options.debug) this.log('---- init section instances')
+      const sectionInstances = this.initSectionInstances(childInstances)
 
-      this.instances.forEach(instance => {
-        const el = instance.el
-        itemObserver.observe(el)
-        const container = el.closest(this.options.selectors.container)
-        if (container) {
-          const itemContainerObserver = createObserver({
-            root: container,
-            className: this.options.classNames.in_container,
+      this.instances = [...sectionInstances, ...rogueInstances]
+
+      this.instances.forEach((instance, index) => {
+        this.instances[index].index = index
+        instance.el.dataset.monocerosIndex = index
+
+        if (instance.type === this.options.base.section) {
+          instance.children.forEach((child, childIndex) => {
+            this.instances[index].children[childIndex].parent.index = index
+            this.instances[index].children[childIndex].index = childIndex
+            child.el.dataset.monocerosParent = index
+            child.el.dataset.monocerosIndex = childIndex
           })
-          itemContainerObserver.observe(el)
-        } else {
-          el.classList.add(this.options.classNamePrefix + 'no-container-parent')
         }
       })
+    }
+
+    const initCluster = () => {
+      if (this.options.debug) this.log('-- init cluster registrations')
+      this.cluster.register('instances', this.instances)
+      this.cluster.register('options', this.options)
+      this.cluster.register('dom', this.dom)
+    }
+
+    const initObservers = () => {
+      const create = this.cluster.resolve('observer.create')
+
+      const itemObserverCallback = this.cluster.resolve('observer.itemObserver')
+      const sectionObserverCallback = this.cluster.resolve(
+        'observer.sectionObserver'
+      )
+      const childObserverCallback = this.cluster.resolve(
+        'observer.childObserver'
+      )
+      const childParentObserverCallback = this.cluster.resolve(
+        'observer.childParentObserver'
+      )
+
+      const itemObserver = create(
+        { root: this.dom.viewport },
+        itemObserverCallback
+      )
+
+      const sectionObserver = create(
+        { root: this.dom.viewport },
+        sectionObserverCallback
+      )
+
+      const childObserver = create(
+        { root: this.dom.viewport },
+        childObserverCallback
+      )
+
+      this.instances
+        .filter(i => i.type === this.options.base.rogue)
+        .forEach(rogueInstance => itemObserver.observe(rogueInstance.el))
+
+      this.instances
+        .filter(i => i.type === this.options.base.section)
+        .forEach(sectionInstance => {
+          const childParentObserver = create(
+            { root: sectionInstance.el },
+            childParentObserverCallback
+          )
+          sectionInstance.observers.viewport = childObserver
+          sectionInstance.observers.section = childParentObserver
+          sectionObserver.observe(sectionInstance.el)
+        })
     }
 
     const initPlugins = () => {
@@ -158,8 +250,9 @@ const Monoceros = function (cluster) {
     }
 
     initViewport()
-    initContainers()
     initInstances()
+    initCluster()
+    initObservers()
     initPlugins()
 
     if (this.options.debug) this.log('INIT FINISHED')
@@ -169,7 +262,7 @@ const Monoceros = function (cluster) {
       version: this.version,
       plugins: this.plugins,
       options: this.options,
-      cluster: this.cluster,
+      instances: this.instances,
     }
   }
 }
