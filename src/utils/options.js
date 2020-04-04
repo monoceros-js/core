@@ -5,7 +5,7 @@ export const createSelector = (_base, _selector) => {
 }
 
 export const createClassName = (_prefix, _className) => {
-  return `${_prefix}in-${_className}`
+  return `${_prefix}${_className}`
 }
 
 export const createOptions = (...optionObjects) => {
@@ -20,10 +20,7 @@ export const createOptions = (...optionObjects) => {
     }
     for (const [key, value] of Object.entries(options.base)) {
       options.selectors[key] = createSelector(options.selectorPrefix, value)
-      options.classNames['in_' + key] = createClassName(
-        options.classNamePrefix,
-        value
-      )
+      options.classNames[key] = createClassName(options.classNamePrefix, value)
     }
   }
 
