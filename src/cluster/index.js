@@ -3,18 +3,18 @@ import Cluster from '@monoceros/cluster'
 import defaults from '../config'
 import { version } from '../../package.json'
 
-import { createOptions } from '../utils/options'
-import { createObserver } from '../utils/observer'
-import { createMonocerosInstance } from '../utils/monoceros'
-import { log, logError } from '../utils/log'
-import { isArray } from '../utils/value'
+import { createOptions } from '../lib/utils/options'
+import { createObserver } from '../lib/utils/observer'
+import { createMonocerosInstance } from '../lib/utils/monoceros'
+import { log, logError } from '../lib/utils/log'
+import { isArray } from '../lib/utils/value'
 
 import {
   itemObserverCallback,
   sectionObserverCallback,
   childObserverCallback,
   childParentObserverCallback,
-} from '../observers'
+} from '../lib/observers'
 
 import { MonocerosCoreError, MonocerosError } from '../errors'
 
