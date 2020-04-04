@@ -488,7 +488,7 @@ Cluster.Instance = function (entity) {
 };
 
 var defaults = {
-  classNamePrefix: 'u_',
+  classNamePrefix: 'm-',
   selectorPrefix: 'monoceros-',
   debug: false,
   base: {

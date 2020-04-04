@@ -491,7 +491,7 @@ var Monoceros = (function () {
   };
 
   var defaults = {
-    classNamePrefix: 'u_',
+    classNamePrefix: 'm-',
     selectorPrefix: 'monoceros-',
     debug: false,
     base: {
