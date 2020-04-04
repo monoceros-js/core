@@ -585,7 +585,7 @@ var createMonocerosInstance = function createMonocerosInstance(type, el, parentE
     isIntersectingParent: null,
     index: null,
     parent: {
-      element: parentElement,
+      el: parentElement,
       index: null
     },
     children: children || [],
@@ -918,7 +918,7 @@ var Monoceros = function Monoceros(cluster) {
       var sectionInstances = [];
       sections.forEach(function (section) {
         var children = childInstances.filter(function (instance) {
-          return instance.parent.element === section;
+          return instance.parent.el === section;
         });
         sectionInstances.push(createInstance(_this2.options.base.section, section, _this2.dom.viewport, children));
         section.style = "\n          overflow: hidden;\n          position: relative;\n        ";
