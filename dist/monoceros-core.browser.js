@@ -524,7 +524,7 @@ var Monoceros = (function () {
     }
   };
 
-  var version = "1.0.5";
+  var version = "1.0.6";
 
   var isObject = function isObject(value) {
     return value && _typeof(value) === 'object' && value.constructor === Object;
@@ -630,17 +630,24 @@ var Monoceros = (function () {
     };
   };
 
-  var prependByZero = function prependByZero(val, threshold) {
-    if (val < threshold) return '0' + val;
+  var prependByZero = function prependByZero(val) {
+    var magnitude = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 1;
+
+    for (var i = 1; i < magnitude + 1; i++) {
+      var threshold = Math.pow(10, i);
+      var zeros = Array(i + 1 - magnitude).fill('0').join('');
+      if (val < threshold) return zeros + val;
+    }
+
     return val;
   };
 
   var getCurrentTime = function getCurrentTime() {
     var date = new Date();
-    var hours = prependByZero(date.getHours(), 10);
-    var minutes = prependByZero(date.getMinutes(), 10);
-    var seconds = prependByZero(date.getSeconds(), 10);
-    var millis = prependByZero(date.getMilliseconds(), 100);
+    var hours = prependByZero(date.getHours());
+    var minutes = prependByZero(date.getMinutes());
+    var seconds = prependByZero(date.getSeconds());
+    var millis = prependByZero(date.getMilliseconds(), 2);
     return "".concat(hours, ":").concat(minutes, ":").concat(seconds, ".").concat(millis);
   };
 
