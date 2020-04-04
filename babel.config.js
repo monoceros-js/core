@@ -3,7 +3,7 @@ module.exports = function (api) {
 
   const presets = []
   if (process.env.BUILD === 'browser') {
-    console.log('BUILDING BROWSER PRODUCTION')
+    console.log('BUILDING BROWSER')
     presets.push([
       '@babel/env',
       {
