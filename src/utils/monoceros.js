@@ -1,14 +1,25 @@
-export const createMonocerosInstance = el => ({
+export const createMonocerosInstance = (type, el, parentElement, children) => ({
+  type,
   el,
-  inView: false,
-  x: {
-    start: 0,
-    current: 0,
-    end: 0,
+  isIntersecting: false,
+  isIntersectingParent: null,
+  index: null,
+  parent: {
+    element: parentElement,
+    index: null,
   },
-  y: {
-    start: 0,
-    current: 0,
-    end: 0,
+  children: children || [],
+  observers: {},
+  coordinates: {
+    x: {
+      start: 0,
+      current: 0,
+      end: 0,
+    },
+    y: {
+      start: 0,
+      current: 0,
+      end: 0,
+    },
   },
 })
