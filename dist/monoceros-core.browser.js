@@ -499,6 +499,10 @@ var Monoceros = (function () {
       section: 'section',
       item: 'item',
       rogue: 'rogue'
+    },
+    rootMargin: {
+      parent: '0px',
+      child: '0px'
     }
   };
 
@@ -981,13 +985,16 @@ var Monoceros = (function () {
         var childParentObserverCallback = _this2.cluster.resolve('observer.childParentObserver');
 
         var itemObserver = create({
-          root: _this2.dom.viewport
+          root: _this2.dom.viewport,
+          rootMargin: _this2.options.rootMargin.parent
         }, itemObserverCallback);
         var sectionObserver = create({
-          root: _this2.dom.viewport
+          root: _this2.dom.viewport,
+          rootMargin: _this2.options.rootMargin.parent
         }, sectionObserverCallback);
         var childObserver = create({
-          root: _this2.dom.viewport
+          root: _this2.dom.viewport,
+          rootMargin: _this2.options.rootMargin.child
         }, childObserverCallback);
 
         _this2.instances.filter(function (i) {
