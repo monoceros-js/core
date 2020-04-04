@@ -233,6 +233,9 @@ var Monoceros = (function () {
   var isFunction = function isFunction(value) {
     return typeof value === 'function';
   };
+  var isArray = function isArray(value) {
+    return Array.isArray(value);
+  };
 
   function _classCallCheck$1(instance, Constructor) {
     if (!(instance instanceof Constructor)) {
@@ -396,10 +399,21 @@ var Monoceros = (function () {
     this.entities = {};
 
     this.register = function (name, entity, options) {
-      if (options && isFunction(options)) {
-        options = {
-          type: options
-        };
+      if (!name) throw new MonocerosClusterError('Entity name must be provided');
+      if (!entity) throw new MonocerosClusterError("Could not find entity trying to be registered as ".concat(name));
+
+      if (options) {
+        if (isFunction(options)) {
+          options = {
+            type: options
+          };
+        }
+
+        if (isArray(options)) {
+          options = {
+            dependencies: options
+          };
+        }
       }
 
       options = options || {};
@@ -423,6 +437,10 @@ var Monoceros = (function () {
     this.resolve = function (name) {
       for (var _len2 = arguments.length, args = new Array(_len2 > 1 ? _len2 - 1 : 0), _key2 = 1; _key2 < _len2; _key2++) {
         args[_key2 - 1] = arguments[_key2];
+      }
+
+      if (!name) {
+        throw new MonocerosClusterError('Resolve requires the name of an entity to resolve');
       }
 
       args = args || [];
@@ -511,7 +529,7 @@ var Monoceros = (function () {
   var isObject = function isObject(value) {
     return value && _typeof(value) === 'object' && value.constructor === Object;
   };
-  var isArray = function isArray(v) {
+  var isArray$1 = function isArray(v) {
     return v && Array.isArray(v);
   };
 
@@ -525,7 +543,7 @@ var Monoceros = (function () {
         var pVal = prev[key];
         var oVal = obj[key];
 
-        if (isArray(pVal) && isArray(oVal)) {
+        if (isArray$1(pVal) && isArray$1(oVal)) {
           prev[key] = pVal.concat.apply(pVal, _toConsumableArray(oVal));
         } else if (isObject(pVal) && isObject(oVal)) {
           prev[key] = merge(pVal, oVal);
@@ -612,17 +630,17 @@ var Monoceros = (function () {
     };
   };
 
-  var prependByZero = function prependByZero(val) {
-    if (val < 10) return '0' + val;
+  var prependByZero = function prependByZero(val, threshold) {
+    if (val < threshold) return '0' + val;
     return val;
   };
 
   var getCurrentTime = function getCurrentTime() {
     var date = new Date();
-    var hours = prependByZero(date.getHours());
-    var minutes = prependByZero(date.getMinutes());
-    var seconds = prependByZero(date.getSeconds());
-    var millis = date.getMilliseconds();
+    var hours = prependByZero(date.getHours(), 10);
+    var minutes = prependByZero(date.getMinutes(), 10);
+    var seconds = prependByZero(date.getSeconds(), 10);
+    var millis = prependByZero(date.getMilliseconds(), 100);
     return "".concat(hours, ":").concat(minutes, ":").concat(seconds, ".").concat(millis);
   };
 
@@ -639,9 +657,16 @@ var Monoceros = (function () {
     console.error = error;
   };
 
-  var itemObserver = function itemObserver(options, instances, items) {
+  var camelCasify = function camelCasify(string) {
+    return string.toLowerCase().replace(/[^a-zA-Z0-9]+(.)/g, function (m, chr) {
+      return chr.toUpperCase();
+    });
+  };
+
+  var itemObserver = function itemObserver(options, instances, cc, items) {
     var handleObservation = function handleObservation(item) {
-      var index = parseInt(item.target.dataset.monocerosIndex);
+      var prefix = options.selectorPrefix;
+      var index = parseInt(item.target.dataset[cc(prefix + 'index')]);
       var itemInstance = instances[index];
       if (!itemInstance) return;
       var isIntersecting = item.isIntersecting && !itemInstance.isIntersecting;
@@ -660,9 +685,10 @@ var Monoceros = (function () {
     items.forEach(handleObservation);
   };
 
-  var sectionObserver = function sectionObserver(options, instances, sections) {
+  var sectionObserver = function sectionObserver(options, instances, cc, sections) {
     var handleObservation = function handleObservation(section) {
-      var index = parseInt(section.target.dataset.monocerosIndex);
+      var prefix = options.selectorPrefix;
+      var index = parseInt(section.target.dataset[cc(prefix + 'index')]);
       var sectionInstance = instances[index];
       if (!sectionInstance) return;
       var isIntersecting = section.isIntersecting && !sectionInstance.isIntersecting;
@@ -692,10 +718,11 @@ var Monoceros = (function () {
     sections.forEach(handleObservation);
   };
 
-  var childObserver = function childObserver(options, instances, children) {
+  var childObserver = function childObserver(options, instances, cc, children) {
     var handleObservation = function handleObservation(child) {
-      var index = parseInt(child.target.dataset.monocerosIndex);
-      var parentIndex = parseInt(child.target.dataset.monocerosParent);
+      var prefix = options.selectorPrefix;
+      var index = parseInt(child.target.dataset[cc(prefix + 'index')]);
+      var parentIndex = parseInt(child.target.dataset[cc(prefix + 'parent')]);
       var childInstance = instances[parentIndex].children[index];
       var isIntersecting = child.isIntersecting && childInstance.isIntersectingParent;
       var isNotIntersecting = !child.isIntersecting || !childInstance.isIntersectingParent;
@@ -723,10 +750,11 @@ var Monoceros = (function () {
 
     children.forEach(handleObservation);
   };
-  var childParentObserver = function childParentObserver(instances, children) {
+  var childParentObserver = function childParentObserver(options, instances, cc, children) {
     var handleObservation = function handleObservation(child) {
-      var index = parseInt(child.target.dataset.monocerosIndex);
-      var parentIndex = parseInt(child.target.dataset.monocerosParent);
+      var prefix = options.selectorPrefix;
+      var index = parseInt(child.target.dataset[cc(prefix + 'index')]);
+      var parentIndex = parseInt(child.target.dataset[cc(prefix + 'parent')]);
       var parentInstance = instances[parentIndex];
       var childInstance = parentInstance.children[index];
       var intersectingParent = child.isIntersecting && !childInstance.isIntersectingParent;
@@ -788,21 +816,22 @@ var Monoceros = (function () {
   cluster.register('monoceros.createInstance', createMonocerosInstance);
   cluster.register('utils.log', log);
   cluster.register('utils.logError', logError);
-  cluster.register('utils.isArray', isArray);
+  cluster.register('utils.isArray', isArray$1);
+  cluster.register('utils.camelCasify', camelCasify);
   cluster.register('errors.MonocerosError', MonocerosError);
   cluster.register('errors.MonocerosCoreError', MonocerosCoreError);
   cluster.register('observer.create', createObserver);
   cluster.register('observer.itemObserver', itemObserverCallback, {
-    dependencies: ['options', 'instances']
+    dependencies: ['options', 'instances', 'utils.camelCasify']
   });
   cluster.register('observer.sectionObserver', sectionObserverCallback, {
-    dependencies: ['options', 'instances']
+    dependencies: ['options', 'instances', 'utils.camelCasify']
   });
   cluster.register('observer.childObserver', childObserverCallback, {
-    dependencies: ['options', 'instances']
+    dependencies: ['options', 'instances', 'utils.camelCasify']
   });
   cluster.register('observer.childParentObserver', childParentObserverCallback, {
-    dependencies: ['instances']
+    dependencies: ['options', 'instances', 'utils.camelCasify']
   });
 
   var Monoceros = function Monoceros(cluster) {
@@ -948,16 +977,20 @@ var Monoceros = (function () {
 
         _this2.instances = [].concat(_toConsumableArray(sectionInstances), _toConsumableArray(rogueInstances));
 
+        var cc = _this2.cluster.resolve('utils.camelCasify');
+
+        var prefix = _this2.options.selectorPrefix;
+
         _this2.instances.forEach(function (instance, index) {
           _this2.instances[index].index = index;
-          instance.el.dataset.monocerosIndex = index;
+          instance.el.dataset[cc(prefix + 'index')] = index;
 
           if (instance.type === _this2.options.base.section) {
             instance.children.forEach(function (child, childIndex) {
               _this2.instances[index].children[childIndex].parent.index = index;
               _this2.instances[index].children[childIndex].index = childIndex;
-              child.el.dataset.monocerosParent = index;
-              child.el.dataset.monocerosIndex = childIndex;
+              child.el.dataset[cc(prefix + 'parent')] = index;
+              child.el.dataset[cc(prefix + 'index')] = childIndex;
             });
           }
         });
