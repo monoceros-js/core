@@ -68,12 +68,12 @@ Monoceros.set({ debug: true })
 
 #### Options
 
-| Property          | Default value  | Description                                                                           |
-| ----------------- | -------------- | ------------------------------------------------------------------------------------- |
-| `classNamePrefix` | `'m-'`         | Prefix put before every class added by monoceros.                                     |
-| `selectorPrefix`  | `'monoceros-'` | Prefix every data attribute added by monoceros starts with.                           |
-| `debug`           | `false`        | Controls wether or not monoceros (and plugins) will output debug logs to the console. |
-| `base`            | _object_       | Controls naming of all elements (viewport, section, item, rogue)                      |
+| Property          | Default value  | Description                                                                               |
+| ----------------- | -------------- | ----------------------------------------------------------------------------------------- |
+| `classNamePrefix` | `'m-'`         | Prefix put before every class added by monoceros. (does not apply to 'in-viewport' class) |
+| `selectorPrefix`  | `'monoceros-'` | Prefix every data attribute added by monoceros starts with.                               |
+| `debug`           | `false`        | Controls wether or not monoceros (and plugins) will output debug logs to the console.     |
+| `base`            | _object_       | Controls naming of all elements (viewport, section, item, rogue)                          |
 
 ##### options.base defaults
 
