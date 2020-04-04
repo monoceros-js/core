@@ -5,7 +5,7 @@ export const createMonocerosInstance = (type, el, parentElement, children) => ({
   isIntersectingParent: null,
   index: null,
   parent: {
-    element: parentElement,
+    el: parentElement,
     index: null,
   },
   children: children || [],
